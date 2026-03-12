@@ -84,7 +84,67 @@ Run(LW_Change);
 ```
 #### Python ####
 ```python
+import vs
 
+# This script sets the line weight of all objects inside selected symbols
+# to a specified value (in mm). Select the symbols you want to update
+# before running the script, and it will loop through each one,
+# entering the symbol definition and updating every object inside.
+
+# Set the target line weight in mm - change this value as needed
+TARGET_LW_MM = 0.05
+
+def set_line_weight_in_symbol(symbol_def_handle):
+    """
+    Loops through every object inside a symbol definition
+    and sets its line weight to the target value.
+    """
+    # Convert mm to mils (VectorWorks internal unit for line weight)
+    # Formula: mm / 25.4 * 1000 — round() used to avoid floor truncation
+    # e.g. 0.05mm -> 1.9685 mils -> rounds to 2
+    target_lw = round(TARGET_LW_MM / 25.4 * 1000)
+
+    # Get the first object inside the symbol definition
+    obj_handle = vs.FInSymDef(symbol_def_handle)
+
+    # Loop through all objects in the symbol definition
+    while obj_handle:
+        # Apply the target line weight to this object
+        vs.SetLW(obj_handle, target_lw)
+        # Move to the next object in the symbol
+        obj_handle = vs.NextObj(obj_handle)
+
+def main():
+    """
+    Loops through all selected objects on the active layer.
+    For each selected symbol instance, it retrieves the symbol
+    definition and updates the line weight of all objects inside it.
+    """
+    # Get the first selected object on the active layer
+    selected_obj_handle = vs.FSActLayer()
+
+    # Loop through all selected objects
+    while selected_obj_handle:
+        # Check if the selected object is a symbol instance (type 15)
+        if vs.GetTypeN(selected_obj_handle) == 15:
+
+            # Get the name of the symbol and find its definition
+            symbol_name = vs.GetSymName(selected_obj_handle)
+            symbol_def_handle = vs.GetObject(symbol_name)
+
+            # Confirm the definition exists and is a symbol definition (type 16)
+            if symbol_def_handle and vs.GetTypeN(symbol_def_handle) == 16:
+                # Update line weights for all objects inside this symbol
+                set_line_weight_in_symbol(symbol_def_handle)
+
+        # Move to the next selected object
+        selected_obj_handle = vs.NextSObj(selected_obj_handle)
+
+    # Notify the user that the script has completed
+    vs.AlrtDialog(f"Line weight of objects in selected symbols set to {TARGET_LW_MM}mm.")
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## Version
